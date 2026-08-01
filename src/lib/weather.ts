@@ -123,3 +123,47 @@ export function summarizeWeather(hourly: HourlyWeather[]): WeatherSummary {
     conditionCode,
   };
 }
+
+/** Chart window locked to recommendation day window (RFC §8.2 / PRD inventori). */
+const CHART_HOUR_START = 5;
+const CHART_HOUR_END = 21;
+
+export type HourlyChartBar = {
+  hourLabel: string;
+  temperatureC: number;
+  precipitationProbability: number;
+  /** 0–100 for CSS bar height from precipitation probability. */
+  heightPercent: number;
+};
+
+function parseLocalHour(time: string): number | null {
+  // Open-Meteo local times look like "2026-08-01T05:00" or with seconds/offset
+  const match = /T(\d{2}):/.exec(time);
+  if (!match) return null;
+  return Number(match[1]);
+}
+
+/**
+ * Pure helper for CSS bar/sparkline — hours 05:00–21:00 only (RFC §8.2).
+ * Height maps 1:1 from precipitation probability for deterministic UI.
+ */
+export function chartBarsFromHourly(hourly: HourlyWeather[]): HourlyChartBar[] {
+  const bars: HourlyChartBar[] = [];
+
+  for (const row of hourly) {
+    const hour = parseLocalHour(row.time);
+    if (hour == null || hour < CHART_HOUR_START || hour > CHART_HOUR_END) {
+      continue;
+    }
+
+    const precip = Math.max(0, Math.min(100, row.precipitationProbability));
+    bars.push({
+      hourLabel: String(hour).padStart(2, "0"),
+      temperatureC: row.temperatureC,
+      precipitationProbability: row.precipitationProbability,
+      heightPercent: precip,
+    });
+  }
+
+  return bars;
+}

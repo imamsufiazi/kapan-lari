@@ -111,6 +111,17 @@ import { DEFAULT_LOCATION } from "../lib/location";
             <dd data-weather-condition>—</dd>
           </div>
         </dl>
+
+        <div class="hourly-chart" data-hourly-chart hidden>
+          <p class="hourly-chart__title" id="chart-heading">Peluang hujan per jam (05–21)</p>
+          <div
+            class="hourly-chart__bars"
+            data-hourly-bars
+            role="img"
+            aria-labelledby="chart-heading"
+          ></div>
+          <p class="hourly-chart__legend">Tinggi batang = % peluang hujan</p>
+        </div>
       </section>
 
       <footer class="footer">
@@ -127,7 +138,12 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
     <script>
       import { DEFAULT_LOCATION } from "../lib/location";
-      import type { Coordinates, PrayerName, RunSlot } from "../lib/location";
+      import type {
+        Coordinates,
+        HourlyWeather,
+        PrayerName,
+        RunSlot,
+      } from "../lib/location";
       import {
         formatNearestPrayer,
         prayerLabel,
@@ -135,7 +151,11 @@ import { DEFAULT_LOCATION } from "../lib/location";
       } from "../lib/display";
       import { searchCities } from "../lib/geocoding";
       import { fetchPrayerTimings } from "../lib/prayer";
-      import { fetchHourlyWeather, summarizeWeather } from "../lib/weather";
+      import {
+        chartBarsFromHourly,
+        fetchHourlyWeather,
+        summarizeWeather,
+      } from "../lib/weather";
       import {
         emptyStateMessage,
         recommendRunSlots,
@@ -194,6 +214,12 @@ import { DEFAULT_LOCATION } from "../lib/location";
       ) as HTMLElement;
       const weatherCondition = document.querySelector(
         "[data-weather-condition]",
+      ) as HTMLElement;
+      const hourlyChart = document.querySelector(
+        "[data-hourly-chart]",
+      ) as HTMLElement;
+      const hourlyBars = document.querySelector(
+        "[data-hourly-bars]",
       ) as HTMLElement;
 
       let activeLocation: Coordinates = { ...DEFAULT_LOCATION };
@@ -278,9 +304,10 @@ import { DEFAULT_LOCATION } from "../lib/location";
         slotList.hidden = false;
         slotList.replaceChildren();
 
-        for (const slot of slots) {
+        slots.forEach((slot, index) => {
           const li = document.createElement("li");
           li.className = slot.isBest ? "slot slot--best" : "slot";
+          li.style.setProperty("--slot-index", String(index));
 
           const header = document.createElement("div");
           header.className = "slot__header";
@@ -314,7 +341,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
           li.append(header, meta, reasons);
           slotList.append(li);
-        }
+        });
       }
 
       function renderPrayerTimes(
@@ -331,6 +358,55 @@ import { DEFAULT_LOCATION } from "../lib/location";
         }
       }
 
+      function clearHourlyChart() {
+        hourlyChart.hidden = true;
+        hourlyBars.replaceChildren();
+        hourlyBars.removeAttribute("aria-label");
+      }
+
+      function renderHourlyChart(hourly: HourlyWeather[]) {
+        const bars = chartBarsFromHourly(hourly);
+        hourlyBars.replaceChildren();
+
+        if (bars.length === 0) {
+          clearHourlyChart();
+          return;
+        }
+
+        const ariaParts: string[] = [];
+        bars.forEach((bar, index) => {
+          const col = document.createElement("div");
+          col.className = "hourly-chart__col";
+
+          const track = document.createElement("div");
+          track.className = "hourly-chart__track";
+
+          const fill = document.createElement("div");
+          fill.className = "hourly-chart__bar";
+          fill.style.setProperty("--bar-height", `${bar.heightPercent}%`);
+          fill.style.setProperty("--bar-index", String(index));
+          fill.title = `${bar.hourLabel}:00 — hujan ${bar.precipitationProbability}%, ${Math.round(bar.temperatureC)}°C`;
+
+          const label = document.createElement("span");
+          label.className = "hourly-chart__hour";
+          label.textContent = bar.hourLabel;
+
+          track.append(fill);
+          col.append(track, label);
+          hourlyBars.append(col);
+
+          ariaParts.push(
+            `${bar.hourLabel}:00 ${bar.precipitationProbability}% hujan`,
+          );
+        });
+
+        hourlyBars.setAttribute(
+          "aria-label",
+          `Grafik peluang hujan: ${ariaParts.join("; ")}`,
+        );
+        hourlyChart.hidden = false;
+      }
+
       function clearMetaPlaceholders() {
         for (const name of PRAYER_ORDER) {
           const el = document.querySelector(
@@ -341,6 +417,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
         weatherTemp.textContent = "— / —";
         weatherRain.textContent = "—";
         weatherCondition.textContent = "—";
+        clearHourlyChart();
       }
 
       async function loadForLocation(location: Coordinates) {
@@ -367,6 +444,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
           weatherCondition.textContent = weatherConditionLabel(
             summary.conditionCode,
           );
+          renderHourlyChart(weather.hourly);
 
           const result = recommendRunSlots({
             now: new Date(),

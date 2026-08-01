@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  chartBarsFromHourly,
   fetchHourlyWeather,
   summarizeWeather,
 } from "./weather";
@@ -128,5 +129,72 @@ describe("summarizeWeather", () => {
       maxPrecipitationProbability: 40,
       conditionCode: 61,
     });
+  });
+});
+
+describe("chartBarsFromHourly", () => {
+  it("keeps only hours 05:00–21:00 and scales bar height by precipitation (RFC §8.2)", () => {
+    const hourly: HourlyWeather[] = [
+      {
+        time: "2026-08-01T04:00",
+        temperatureC: 23,
+        precipitationProbability: 5,
+        weatherCode: 1,
+      },
+      {
+        time: "2026-08-01T05:00",
+        temperatureC: 24,
+        precipitationProbability: 0,
+        weatherCode: 1,
+      },
+      {
+        time: "2026-08-01T12:00",
+        temperatureC: 32,
+        precipitationProbability: 50,
+        weatherCode: 61,
+      },
+      {
+        time: "2026-08-01T21:00",
+        temperatureC: 27,
+        precipitationProbability: 100,
+        weatherCode: 63,
+      },
+      {
+        time: "2026-08-01T22:00",
+        temperatureC: 26,
+        precipitationProbability: 80,
+        weatherCode: 61,
+      },
+    ];
+
+    const bars = chartBarsFromHourly(hourly);
+
+    expect(bars.map((b) => b.hourLabel)).toEqual(["05", "12", "21"]);
+    expect(bars[0]).toMatchObject({
+      precipitationProbability: 0,
+      temperatureC: 24,
+      heightPercent: 0,
+    });
+    expect(bars[1]).toMatchObject({
+      precipitationProbability: 50,
+      heightPercent: 50,
+    });
+    expect(bars[2]).toMatchObject({
+      precipitationProbability: 100,
+      heightPercent: 100,
+    });
+  });
+
+  it("returns empty array when no hourly rows fall in the chart window", () => {
+    expect(
+      chartBarsFromHourly([
+        {
+          time: "2026-08-01T03:00",
+          temperatureC: 22,
+          precipitationProbability: 10,
+          weatherCode: 1,
+        },
+      ]),
+    ).toEqual([]);
   });
 });

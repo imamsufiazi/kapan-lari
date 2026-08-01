@@ -30,3 +30,5 @@ pnpm-debug.log*
 docs/
 AGENTS.md
 CLAUDE.md
+
+.vercel

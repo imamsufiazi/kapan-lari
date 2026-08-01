@@ -393,6 +393,88 @@ input {
   font-weight: 600;
 }
 
+/* Hourly precipitation chart — CSS bars only (RFC §8.2) */
+.hourly-chart {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 2px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+
+.hourly-chart__title {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.hourly-chart__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 8.5rem;
+  padding: var(--space-sm) 0;
+  overflow-x: auto;
+}
+
+.hourly-chart__col {
+  flex: 1 0 0.7rem;
+  min-width: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hourly-chart__track {
+  width: 100%;
+  height: 6.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-surface-deep) 45%, transparent);
+}
+
+.hourly-chart__bar {
+  width: 100%;
+  max-width: 1.1rem;
+  height: var(--bar-height, 0%);
+  min-height: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-lime-300) 0%,
+    var(--color-lime-700) 100%
+  );
+  border: 1px solid var(--color-ink);
+  transform-origin: bottom;
+  animation: bar-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--bar-index, 0) * 28ms);
+}
+
+.hourly-chart__hour {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  line-height: 1;
+}
+
+.hourly-chart__col:nth-child(odd) .hourly-chart__hour {
+  opacity: 1;
+}
+
+.hourly-chart__col:nth-child(even) .hourly-chart__hour {
+  opacity: 0;
+}
+
+.hourly-chart__legend {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
 .footer {
   margin-top: var(--space-xl);
   padding-top: var(--space-md);
@@ -424,5 +506,62 @@ input {
 
   .slot__meta-item:last-child {
     grid-column: auto;
+  }
+
+  .hourly-chart__col {
+    min-width: 1rem;
+  }
+
+  .hourly-chart__col:nth-child(even) .hourly-chart__hour {
+    opacity: 1;
+  }
+}
+
+/* Motion — 3 intentional cues (RFC §8.3 / M5); respect reduced motion */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.85rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slot-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.hero {
+  animation: hero-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slot {
+  animation: slot-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--slot-index, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .slot,
+  .hourly-chart__bar {
+    animation: none;
   }
 }
