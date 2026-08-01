@@ -24,27 +24,52 @@ import { DEFAULT_LOCATION } from "../lib/location";
   <body>
     <main class="app">
       <header class="hero">
-        <h1 class="brand">Kapan Lari</h1>
-        <p class="tagline">Slot lari terbaik hari ini — aman dari sholat dan cuaca buruk.</p>
+        <div class="hero__copy">
+          <div class="hero__rail" aria-hidden="true"></div>
+          <h1 class="brand">Kapan Lari</h1>
+          <p class="tagline">
+            Cari jam lari yang nyaman hari ini — tidak bentrok sholat, hindari hujan.
+          </p>
+        </div>
       </header>
 
       <section class="location" aria-labelledby="lokasi-heading">
-        <p class="location__label" id="lokasi-heading">Lokasi aktif</p>
+        <p class="location__label" id="lokasi-heading">Langkah 1 · Lokasi kamu</p>
         <p class="location__active" data-location-label>{DEFAULT_LOCATION.label}</p>
         <p class="location__hint" data-location-hint hidden></p>
 
         <div class="location__controls">
           <button type="button" class="btn" data-geo-btn>
-            Gunakan lokasi saya
+            <svg
+              class="btn__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="square"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+              <path
+                d="M12 5.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z"
+                opacity="0.35"
+              ></path>
+            </svg>
+            Pakai lokasi saya
           </button>
           <div class="search-field">
-            <label for="city-search">Cari kota atau kabupaten</label>
+            <label for="city-search">Atau cari kota / kabupaten</label>
+            <p class="search-field__help" id="city-search-help">
+              Ketik minimal 2 huruf, lalu pilih dari daftar.
+            </p>
             <input
               id="city-search"
               type="search"
               name="city"
-              placeholder="Contoh: Bandung"
+              placeholder="Contoh: Bandung, Sleman, Depok"
               autocomplete="off"
+              aria-describedby="city-search-help"
             />
             <ul
               class="search-results"
@@ -53,15 +78,29 @@ import { DEFAULT_LOCATION } from "../lib/location";
               aria-label="Hasil pencarian kota"
               hidden
             ></ul>
-            <p class="search-empty" data-search-empty hidden>Kota tidak ditemukan</p>
+            <p class="search-empty" data-search-empty hidden>
+              Kota tidak ditemukan. Coba ejaan lain atau nama kabupaten.
+            </p>
           </div>
         </div>
       </section>
 
       <section class="section" aria-labelledby="rekomendasi-heading" aria-live="polite">
-        <h2 class="section__title" id="rekomendasi-heading">Rekomendasi hari ini</h2>
-        <div class="state" data-app-state>
-          <p data-state-text>Memuat data cuaca dan jadwal sholat…</p>
+        <div class="section__head">
+          <h2 class="section__title" id="rekomendasi-heading">Slot lari hari ini</h2>
+          <p class="section__lead">
+            Urutan dari paling cocok. Slot bertanda Terbaik adalah pilihan utama.
+          </p>
+        </div>
+        <div class="state state--loading" data-app-state>
+          <div class="skeleton" data-loading-skeleton aria-hidden="true">
+            <div class="skeleton__line skeleton__line--lg"></div>
+            <div class="skeleton__line skeleton__line--md"></div>
+            <div class="skeleton__line skeleton__line--sm"></div>
+          </div>
+          <p class="state__message" data-state-text>
+            Sedang mencari slot lari terbaik untuk lokasimu…
+          </p>
           <button type="button" class="btn btn--ghost" data-retry-btn hidden>
             Coba lagi
           </button>
@@ -69,69 +108,75 @@ import { DEFAULT_LOCATION } from "../lib/location";
         <ul class="slot-list" data-slot-list hidden></ul>
       </section>
 
-      <section class="section" aria-labelledby="sholat-heading">
-        <h2 class="section__title" id="sholat-heading">Jadwal sholat</h2>
-        <dl class="prayer-grid" data-prayer-times>
-          <div class="prayer-item">
-            <dt>Subuh</dt>
-            <dd data-prayer="Fajr">—</dd>
+      <div class="context-stack">
+        <section class="section section--secondary" aria-labelledby="sholat-heading">
+          <div class="section__head">
+            <h2 class="section__title" id="sholat-heading">Jadwal sholat</h2>
+            <p class="section__lead">Dipakai supaya rekomendasi tidak bentrok waktu sholat.</p>
           </div>
-          <div class="prayer-item">
-            <dt>Zuhur</dt>
-            <dd data-prayer="Dhuhr">—</dd>
-          </div>
-          <div class="prayer-item">
-            <dt>Ashar</dt>
-            <dd data-prayer="Asr">—</dd>
-          </div>
-          <div class="prayer-item">
-            <dt>Maghrib</dt>
-            <dd data-prayer="Maghrib">—</dd>
-          </div>
-          <div class="prayer-item">
-            <dt>Isya</dt>
-            <dd data-prayer="Isha">—</dd>
-          </div>
-        </dl>
-      </section>
+          <dl class="prayer-grid" data-prayer-times>
+            <div class="prayer-item">
+              <dt>Subuh</dt>
+              <dd data-prayer="Fajr">—</dd>
+            </div>
+            <div class="prayer-item">
+              <dt>Zuhur</dt>
+              <dd data-prayer="Dhuhr">—</dd>
+            </div>
+            <div class="prayer-item">
+              <dt>Ashar</dt>
+              <dd data-prayer="Asr">—</dd>
+            </div>
+            <div class="prayer-item">
+              <dt>Maghrib</dt>
+              <dd data-prayer="Maghrib">—</dd>
+            </div>
+            <div class="prayer-item">
+              <dt>Isya</dt>
+              <dd data-prayer="Isha">—</dd>
+            </div>
+          </dl>
+        </section>
 
-      <section class="section" aria-labelledby="cuaca-heading">
-        <h2 class="section__title" id="cuaca-heading">Cuaca hari ini</h2>
-        <dl class="meta-grid" data-weather-summary>
-          <div class="meta-block">
-            <dt>Suhu min / maks</dt>
-            <dd data-weather-temp>— / —</dd>
+        <section class="section section--secondary" aria-labelledby="cuaca-heading">
+          <div class="section__head">
+            <h2 class="section__title" id="cuaca-heading">Cuaca hari ini</h2>
+            <p class="section__lead">Ringkas dulu, lalu lihat peluang hujan per jam.</p>
           </div>
-          <div class="meta-block">
-            <dt>Hujan tertinggi</dt>
-            <dd data-weather-rain>—</dd>
-          </div>
-          <div class="meta-block meta-block--wide">
-            <dt>Kondisi</dt>
-            <dd data-weather-condition>—</dd>
-          </div>
-        </dl>
+          <dl class="meta-grid" data-weather-summary>
+            <div class="meta-block">
+              <dt>Suhu min / maks</dt>
+              <dd data-weather-temp>— / —</dd>
+            </div>
+            <div class="meta-block">
+              <dt>Hujan tertinggi</dt>
+              <dd data-weather-rain>—</dd>
+            </div>
+            <div class="meta-block meta-block--wide">
+              <dt>Kondisi</dt>
+              <dd data-weather-condition>—</dd>
+            </div>
+          </dl>
 
-        <div class="hourly-chart" data-hourly-chart hidden>
-          <p class="hourly-chart__title" id="chart-heading">Peluang hujan per jam (05–21)</p>
-          <div
-            class="hourly-chart__bars"
-            data-hourly-bars
-            role="img"
-            aria-labelledby="chart-heading"
-          ></div>
-          <p class="hourly-chart__legend">Tinggi batang = % peluang hujan</p>
-        </div>
-      </section>
+          <div class="hourly-chart" data-hourly-chart hidden>
+            <p class="hourly-chart__title" id="chart-heading">Peluang hujan per jam (05–21)</p>
+            <div
+              class="hourly-chart__bars"
+              data-hourly-bars
+              role="img"
+              aria-labelledby="chart-heading"
+            ></div>
+            <p class="hourly-chart__legend">Semakin tinggi batang, semakin besar peluang hujan.</p>
+          </div>
+        </section>
+      </div>
 
       <footer class="footer">
         <p>
-          Data cuaca oleh{" "}
+          Cuaca dari{" "}
           <a href="https://open-meteo.com/" rel="noopener noreferrer">Open-Meteo</a>
-        </p>
-        <p>
-          Jadwal sholat oleh{" "}
-          <a href="https://aladhan.com/" rel="noopener noreferrer">Aladhan</a>
+          . Jadwal sholat dari{" "}
+          <a href="https://aladhan.com/" rel="noopener noreferrer">Aladhan</a>.
         </p>
       </footer>
     </main>
@@ -161,14 +206,16 @@ import { DEFAULT_LOCATION } from "../lib/location";
         recommendRunSlots,
       } from "../lib/recommendRunSlots";
 
-      const ERROR_COPY = "Gagal memuat data. Coba lagi.";
-      const LOADING_COPY = "Memuat data cuaca dan jadwal sholat…";
+      const ERROR_COPY =
+        "Data belum bisa dimuat. Periksa koneksi internet, lalu coba lagi.";
+      const LOADING_COPY = "Sedang mencari slot lari terbaik untuk lokasimu…";
       const GEO_DENY_COPY =
         "Lokasi ditolak atau gagal. Tetap di lokasi aktif — cari kota di bawah.";
       const GEO_UNSUPPORTED_COPY =
-        "Peramban tidak mendukung lokasi. Cari kota di bawah.";
+        "Peramban tidak mendukung lokasi. Cari kota di bawah saja.";
       const GEO_LOADING_COPY = "Mengambil lokasi perangkat…";
-      const SEARCH_EMPTY_COPY = "Kota tidak ditemukan";
+      const SEARCH_EMPTY_COPY =
+        "Kota tidak ditemukan. Coba ejaan lain atau nama kabupaten.";
       const PRAYER_ORDER: PrayerName[] = [
         "Fajr",
         "Dhuhr",
@@ -293,6 +340,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       function showLoading() {
         stateEl.hidden = false;
+        stateEl.classList.add("state--loading");
         stateEl.classList.remove("state--error");
         stateText.textContent = LOADING_COPY;
         retryBtn.hidden = true;
@@ -302,6 +350,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       function showError() {
         stateEl.hidden = false;
+        stateEl.classList.remove("state--loading");
         stateEl.classList.add("state--error");
         stateText.textContent = ERROR_COPY;
         retryBtn.hidden = false;
@@ -311,6 +360,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       function showEmpty(message: string) {
         stateEl.hidden = false;
+        stateEl.classList.remove("state--loading");
         stateEl.classList.remove("state--error");
         stateText.textContent = message;
         retryBtn.hidden = true;
@@ -338,6 +388,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       function showSlots(slots: RunSlot[], timeZone: string) {
         stateEl.hidden = true;
+        stateEl.classList.remove("state--loading", "state--error");
         retryBtn.hidden = true;
         slotList.hidden = false;
         slotList.replaceChildren();
