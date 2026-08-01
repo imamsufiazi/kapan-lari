@@ -20,6 +20,16 @@
   --tap-min: 44px;
   --max-width: 40rem;
   --radius: 0;
+  /* Motion tokens — strong ease-out for UI (Emil / audit targets) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-hover: ease;
+  --duration-press: 160ms;
+  --duration-ui: 220ms;
+  --duration-enter: 250ms;
+  --duration-hero: 450ms;
+  --stagger-slot: 40ms;
+  --stagger-bar: 28ms;
+  --chart-enter-delay: 0ms;
 }
 
 *,
@@ -112,6 +122,11 @@ input {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  transition: opacity var(--duration-press) var(--ease-out);
+}
+
+.location__active.is-dim {
+  opacity: 0;
 }
 
 .location__hint {
@@ -137,6 +152,9 @@ input {
   color: var(--color-ink);
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background-color var(--duration-press) var(--ease-hover),
+    transform var(--duration-press) var(--ease-out);
 }
 
 .btn:hover,
@@ -144,6 +162,10 @@ input {
   background: var(--color-lime-300);
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -185,6 +207,11 @@ input {
   gap: 2px;
   border: 2px solid var(--color-ink);
   background: rgba(255, 255, 255, 0.72);
+  transform-origin: top center;
+}
+
+.search-results:not([hidden]) {
+  animation: search-enter var(--duration-ui) var(--ease-out) both;
 }
 
 .search-results__item {
@@ -199,12 +226,19 @@ input {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color var(--duration-press) var(--ease-hover),
+    transform var(--duration-press) var(--ease-out);
 }
 
 .search-results__item:hover,
 .search-results__item:focus-visible {
   background: var(--color-lime-300);
   outline: none;
+}
+
+.search-results__item:active {
+  transform: scale(0.97);
 }
 
 .search-empty {
@@ -236,6 +270,10 @@ input {
   font-size: 1.05rem;
   display: grid;
   gap: var(--space-sm);
+}
+
+.state:not([hidden]) {
+  animation: fade-in var(--duration-ui) var(--ease-out) both;
 }
 
 .state p {
@@ -294,6 +332,9 @@ input {
   background: var(--color-lime-500);
   border: 2px solid var(--color-ink);
   padding: 0.2rem 0.55rem;
+  transform-origin: left center;
+  animation: badge-pop var(--duration-press) var(--ease-out) both;
+  animation-delay: calc(var(--slot-index, 0) * var(--stagger-slot) + 80ms);
 }
 
 .slot__meta-grid {
@@ -447,9 +488,16 @@ input {
     var(--color-lime-700) 100%
   );
   border: 1px solid var(--color-ink);
+  transform: scaleY(0.02);
   transform-origin: bottom;
-  animation: bar-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--bar-index, 0) * 28ms);
+  transition: transform var(--duration-enter) var(--ease-out);
+  transition-delay: calc(
+    var(--chart-enter-delay, 0ms) + var(--bar-index, 0) * var(--stagger-bar)
+  );
+}
+
+.hourly-chart__bar.bar--enter {
+  transform: scaleY(1);
 }
 
 .hourly-chart__hour {
@@ -517,7 +565,7 @@ input {
   }
 }
 
-/* Motion — 3 intentional cues (RFC §8.3 / M5); respect reduced motion */
+/* Motion — intentional cues; transitions for interruptible list/chart */
 @keyframes hero-enter {
   from {
     opacity: 0;
@@ -529,10 +577,10 @@ input {
   }
 }
 
-@keyframes slot-enter {
+@keyframes search-enter {
   from {
     opacity: 0;
-    transform: translateY(0.6rem);
+    transform: translateY(-0.35rem);
   }
   to {
     opacity: 1;
@@ -540,28 +588,82 @@ input {
   }
 }
 
-@keyframes bar-rise {
+@keyframes badge-pop {
   from {
-    transform: scaleY(0);
+    opacity: 0;
+    transform: scale(0.96);
   }
   to {
-    transform: scaleY(1);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
 .hero {
-  animation: hero-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hero-enter var(--duration-hero) var(--ease-out) both;
 }
 
+/* Transition (not keyframes) so rapid location reloads retarget mid-flight */
 .slot {
-  animation: slot-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--slot-index, 0) * 70ms);
+  opacity: 0;
+  transform: translateY(0.6rem);
+  transition:
+    opacity var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+  transition-delay: calc(var(--slot-index, 0) * var(--stagger-slot));
+}
+
+.slot.slot--enter {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .btn:active:not(:disabled),
+  .search-results__item:active {
+    transform: none;
+  }
+
+  .location__active {
+    transition: none;
+  }
+
+  .location__active.is-dim {
+    opacity: 1;
+  }
+
   .hero,
-  .slot,
+  .state:not([hidden]),
+  .search-results:not([hidden]) {
+    animation: fade-in 0.2s var(--ease-hover) both;
+  }
+
+  .slot {
+    transform: none;
+    transition: opacity 0.2s var(--ease-hover);
+    transition-delay: 0s;
+  }
+
+  .slot.slot--enter {
+    transform: none;
+  }
+
+  .slot__badge {
+    animation: fade-in 0.2s var(--ease-hover) both;
+    animation-delay: 0s;
+  }
+
   .hourly-chart__bar {
-    animation: none;
+    transform: scaleY(1);
+    transition: none;
   }
 }

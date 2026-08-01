@@ -225,6 +225,44 @@ import { DEFAULT_LOCATION } from "../lib/location";
       let activeLocation: Coordinates = { ...DEFAULT_LOCATION };
       let searchTimer: ReturnType<typeof setTimeout> | null = null;
       let searchRequestId = 0;
+      let locationLabelTimer: ReturnType<typeof setTimeout> | null = null;
+
+      function prefersReducedMotion(): boolean {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      }
+
+      /** Double-rAF so CSS transitions start from the pre-enter state (interruptible). */
+      function revealEntered(elements: Element[], className: string): void {
+        const apply = () => {
+          for (const el of elements) el.classList.add(className);
+        };
+        if (prefersReducedMotion() || elements.length === 0) {
+          apply();
+          return;
+        }
+        requestAnimationFrame(() => {
+          requestAnimationFrame(apply);
+        });
+      }
+
+      function updateLocationLabel(label: string): void {
+        if (locationLabel.textContent === label) return;
+        if (locationLabelTimer !== null) {
+          clearTimeout(locationLabelTimer);
+          locationLabelTimer = null;
+        }
+        if (prefersReducedMotion()) {
+          locationLabel.classList.remove("is-dim");
+          locationLabel.textContent = label;
+          return;
+        }
+        locationLabel.classList.add("is-dim");
+        locationLabelTimer = setTimeout(() => {
+          locationLabel.textContent = label;
+          locationLabel.classList.remove("is-dim");
+          locationLabelTimer = null;
+        }, 120);
+      }
 
       function formatHourRange(start: Date, end: Date, timeZone: string): string {
         const fmt = new Intl.DateTimeFormat("id-ID", {
@@ -304,6 +342,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
         slotList.hidden = false;
         slotList.replaceChildren();
 
+        const items: HTMLElement[] = [];
         slots.forEach((slot, index) => {
           const li = document.createElement("li");
           li.className = slot.isBest ? "slot slot--best" : "slot";
@@ -341,7 +380,10 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
           li.append(header, meta, reasons);
           slotList.append(li);
+          items.push(li);
         });
+
+        revealEntered(items, "slot--enter");
       }
 
       function renderPrayerTimes(
@@ -364,7 +406,10 @@ import { DEFAULT_LOCATION } from "../lib/location";
         hourlyBars.removeAttribute("aria-label");
       }
 
-      function renderHourlyChart(hourly: HourlyWeather[]) {
+      function renderHourlyChart(
+        hourly: HourlyWeather[],
+        options: { enterDelayMs?: number } = {},
+      ) {
         const bars = chartBarsFromHourly(hourly);
         hourlyBars.replaceChildren();
 
@@ -373,7 +418,11 @@ import { DEFAULT_LOCATION } from "../lib/location";
           return;
         }
 
+        const enterDelayMs = options.enterDelayMs ?? 0;
+        hourlyChart.style.setProperty("--chart-enter-delay", `${enterDelayMs}ms`);
+
         const ariaParts: string[] = [];
+        const fills: HTMLElement[] = [];
         bars.forEach((bar, index) => {
           const col = document.createElement("div");
           col.className = "hourly-chart__col";
@@ -394,6 +443,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
           track.append(fill);
           col.append(track, label);
           hourlyBars.append(col);
+          fills.push(fill);
 
           ariaParts.push(
             `${bar.hourLabel}:00 ${bar.precipitationProbability}% hujan`,
@@ -405,6 +455,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
           `Grafik peluang hujan: ${ariaParts.join("; ")}`,
         );
         hourlyChart.hidden = false;
+        revealEntered(fills, "bar--enter");
       }
 
       function clearMetaPlaceholders() {
@@ -422,7 +473,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       async function loadForLocation(location: Coordinates) {
         activeLocation = location;
-        locationLabel.textContent = location.label;
+        updateLocationLabel(location.label);
         showLoading();
         clearMetaPlaceholders();
 
@@ -434,7 +485,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
           const timezone = weather.timezone || location.timezone;
           activeLocation = { ...location, timezone };
-          locationLabel.textContent = activeLocation.label;
+          updateLocationLabel(activeLocation.label);
 
           renderPrayerTimes(prayerTimings);
 
@@ -444,7 +495,6 @@ import { DEFAULT_LOCATION } from "../lib/location";
           weatherCondition.textContent = weatherConditionLabel(
             summary.conditionCode,
           );
-          renderHourlyChart(weather.hourly);
 
           const result = recommendRunSlots({
             now: new Date(),
@@ -453,6 +503,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
             hourlyWeather: weather.hourly,
           });
 
+          // Slots first, then chart with delay — one focal point at a time
           if (result.slots.length === 0) {
             const summaryDiscarded = result.discardedSummary ?? {
               past: 0,
@@ -460,10 +511,12 @@ import { DEFAULT_LOCATION } from "../lib/location";
               unsafeWeather: 0,
             };
             showEmpty(emptyStateMessage(summaryDiscarded));
+            renderHourlyChart(weather.hourly, { enterDelayMs: 0 });
             return;
           }
 
           showSlots(result.slots, timezone);
+          renderHourlyChart(weather.hourly, { enterDelayMs: 200 });
         } catch {
           showError();
         }
