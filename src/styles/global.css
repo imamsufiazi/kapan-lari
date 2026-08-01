@@ -1,4 +1,4 @@
-/* Kapan Lari — athletic editorial, lime, friendlier daily-app density */
+/* Kapan Lari — athletic editorial, lime, light + dark */
 
 :root {
   --color-lime-300: #bef264;
@@ -10,7 +10,23 @@
   --color-surface-deep: #d9f99d;
   --color-muted: #3f6212;
   --color-danger: #9f1239;
+  --color-danger-bg: color-mix(in srgb, #fecdd3 35%, white);
   --color-glass: rgba(255, 255, 255, 0.62);
+  --color-input-bg: rgba(255, 255, 255, 0.72);
+  --color-input-bg-hover: rgba(255, 255, 255, 0.9);
+  --color-input-bg-focus: #fff;
+  --color-panel: color-mix(in srgb, white 70%, var(--color-surface));
+  --color-hint-bg: color-mix(in srgb, var(--color-surface-deep) 40%, white);
+  --color-state-bg: color-mix(in srgb, var(--color-surface-deep) 48%, white);
+  --color-slot-best-bg: color-mix(in srgb, var(--color-lime-300) 28%, white);
+  --color-ghost-hover: color-mix(in srgb, var(--color-lime-300) 55%, white);
+  --color-body-grad-a: #f7fee7;
+  --color-body-grad-b: #ecfccb;
+  --color-glow-a: rgba(190, 242, 100, 0.55);
+  --color-glow-b: rgba(163, 230, 53, 0.28);
+  --color-shadow: rgba(20, 83, 45, 0.35);
+  --color-shadow-strong: rgba(20, 83, 45, 0.7);
+  --color-border: var(--color-ink);
   --font-display: "Oswald", "Arial Narrow", sans-serif;
   --font-body: "Figtree", "Segoe UI", sans-serif;
   --space-xs: 0.5rem;
@@ -21,8 +37,10 @@
   --tap-min: 48px;
   --max-width: 42rem;
   --radius-control: 0.4rem;
+  --radius-panel: calc(var(--radius-control) + 0.5rem);
   --radius: 0;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-icon: cubic-bezier(0.2, 0, 0, 1);
   --ease-hover: ease;
   --duration-press: 160ms;
   --duration-ui: 220ms;
@@ -31,7 +49,42 @@
   --stagger-slot: 40ms;
   --stagger-bar: 28ms;
   --chart-enter-delay: 0ms;
-  --shadow-soft: 0 18px 40px -28px rgba(20, 83, 45, 0.35);
+  --shadow-soft:
+    0 1px 0 rgba(255, 255, 255, 0.35),
+    0 18px 40px -28px var(--color-shadow);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-lime-300: #d9f99d;
+  --color-lime-500: #a3e635;
+  --color-lime-700: #84cc16;
+  --color-ink: #ecfccb;
+  --color-ink-soft: #d9f99d;
+  --color-surface: #0f1f0c;
+  --color-surface-deep: #1a2e14;
+  --color-muted: #a3b86c;
+  --color-danger: #fb7185;
+  --color-danger-bg: color-mix(in srgb, #9f1239 42%, #0f1f0c);
+  --color-glass: rgba(15, 31, 12, 0.72);
+  --color-input-bg: rgba(26, 46, 20, 0.88);
+  --color-input-bg-hover: rgba(36, 58, 28, 0.95);
+  --color-input-bg-focus: #1a2e14;
+  --color-panel: color-mix(in srgb, #142016 82%, var(--color-surface-deep));
+  --color-hint-bg: color-mix(in srgb, var(--color-surface-deep) 70%, #000);
+  --color-state-bg: color-mix(in srgb, var(--color-surface-deep) 65%, #000);
+  --color-slot-best-bg: color-mix(in srgb, var(--color-lime-500) 16%, #142016);
+  --color-ghost-hover: color-mix(in srgb, var(--color-lime-500) 22%, #142016);
+  --color-body-grad-a: #0a1409;
+  --color-body-grad-b: #132612;
+  --color-glow-a: rgba(163, 230, 53, 0.18);
+  --color-glow-b: rgba(132, 204, 22, 0.12);
+  --color-shadow: rgba(0, 0, 0, 0.55);
+  --color-shadow-strong: rgba(0, 0, 0, 0.65);
+  --color-border: color-mix(in srgb, var(--color-ink) 55%, #365314);
+  --shadow-soft:
+    0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 40px -24px var(--color-shadow);
 }
 
 *,
@@ -43,6 +96,7 @@
 html {
   font-size: 112.5%;
   -webkit-text-size-adjust: 100%;
+  color-scheme: light;
 }
 
 body {
@@ -51,10 +105,18 @@ body {
   font-family: var(--font-body);
   color: var(--color-ink);
   background:
-    radial-gradient(95% 70% at 0% 0%, rgba(190, 242, 100, 0.55), transparent 52%),
-    radial-gradient(80% 55% at 100% 8%, rgba(163, 230, 53, 0.28), transparent 50%),
-    linear-gradient(168deg, #f7fee7 0%, var(--color-surface) 46%, #ecfccb 100%);
+    radial-gradient(95% 70% at 0% 0%, var(--color-glow-a), transparent 52%),
+    radial-gradient(80% 55% at 100% 8%, var(--color-glow-b), transparent 50%),
+    linear-gradient(
+      168deg,
+      var(--color-body-grad-a) 0%,
+      var(--color-surface) 46%,
+      var(--color-body-grad-b) 100%
+    );
   line-height: 1.5;
+  transition:
+    color var(--duration-ui) var(--ease-out),
+    background-color var(--duration-ui) var(--ease-out);
 }
 
 body::before {
@@ -65,6 +127,10 @@ body::before {
   pointer-events: none;
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+html[data-theme="dark"] body::before {
+  opacity: 0.06;
 }
 
 img {
@@ -95,10 +161,93 @@ input {
   padding: var(--space-lg) var(--space-md) var(--space-xl);
 }
 
+/* Theme toggle */
+.theme-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-sm);
+}
+
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-input-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition:
+    background-color var(--duration-press) var(--ease-hover),
+    color var(--duration-press) var(--ease-hover),
+    border-color var(--duration-press) var(--ease-hover),
+    transform var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  background: var(--color-lime-500);
+  color: #14532d;
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.theme-toggle:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: none;
+}
+
+.theme-toggle__icons {
+  position: relative;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.theme-toggle__icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity var(--duration-ui) var(--ease-icon),
+    transform var(--duration-ui) var(--ease-icon),
+    filter var(--duration-ui) var(--ease-icon);
+}
+
+.theme-toggle__icon--sun {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.theme-toggle__icon--moon {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
+}
+
+html[data-theme="dark"] .theme-toggle__icon--sun {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
+}
+
+html[data-theme="dark"] .theme-toggle__icon--moon {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
 /* Hero — brand-first composition */
 .hero {
   padding-block: clamp(2.5rem, 8vw, 4rem) var(--space-lg);
-  border-bottom: 3px solid var(--color-ink);
+  border-bottom: 3px solid var(--color-border);
   animation: hero-enter var(--duration-hero) var(--ease-out) both;
 }
 
@@ -113,7 +262,7 @@ input {
   width: 3.5rem;
   height: 0.35rem;
   background: var(--color-lime-500);
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
 }
 
 .brand {
@@ -140,7 +289,8 @@ input {
 .location {
   margin-top: var(--space-lg);
   padding: var(--space-lg);
-  border: 2px solid color-mix(in srgb, var(--color-ink) 22%, transparent);
+  border: 2px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-radius: var(--radius-panel);
   background:
     linear-gradient(
       145deg,
@@ -149,6 +299,12 @@ input {
     );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    var(--shadow-soft);
+}
+
+html[data-theme="dark"] .location {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
     var(--shadow-soft);
 }
 
@@ -169,6 +325,7 @@ input {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   transition: opacity var(--duration-press) var(--ease-out);
+  font-variant-numeric: tabular-nums;
 }
 
 .location__active.is-dim {
@@ -185,7 +342,8 @@ input {
 .location__hint:not([hidden]) {
   padding: 0.55rem 0.75rem;
   border-left: 3px solid var(--color-lime-700);
-  background: color-mix(in srgb, var(--color-surface-deep) 40%, white);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--color-hint-bg);
 }
 
 .location__controls {
@@ -200,15 +358,17 @@ input {
   gap: 0.5rem;
   min-height: var(--tap-min);
   padding: 0.8rem 1.2rem;
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-lime-500);
-  color: var(--color-ink);
+  color: #14532d;
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
   transition:
     background-color var(--duration-press) var(--ease-hover),
+    color var(--duration-press) var(--ease-hover),
+    border-color var(--duration-press) var(--ease-hover),
     transform var(--duration-press) var(--ease-out),
     box-shadow var(--duration-press) var(--ease-out);
 }
@@ -216,13 +376,14 @@ input {
 .btn:hover,
 .btn:focus-visible {
   background: var(--color-lime-300);
+  color: #14532d;
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
-  box-shadow: 0 8px 18px -14px rgba(20, 83, 45, 0.7);
+  box-shadow: 0 8px 18px -14px var(--color-shadow-strong);
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.96);
   box-shadow: none;
 }
 
@@ -234,11 +395,13 @@ input {
 
 .btn--ghost {
   background: transparent;
+  color: var(--color-ink);
 }
 
 .btn--ghost:hover,
 .btn--ghost:focus-visible {
-  background: color-mix(in srgb, var(--color-lime-300) 55%, white);
+  background: var(--color-ghost-hover);
+  color: var(--color-ink);
 }
 
 .btn__icon {
@@ -267,23 +430,24 @@ input {
 .search-field input {
   min-height: var(--tap-min);
   padding: 0.7rem 0.95rem;
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-input-bg);
   color: var(--color-ink);
   transition:
     border-color var(--duration-press) var(--ease-hover),
-    background-color var(--duration-press) var(--ease-hover);
+    background-color var(--duration-press) var(--ease-hover),
+    color var(--duration-press) var(--ease-hover);
 }
 
 .search-field input:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-input-bg-hover);
 }
 
 .search-field input:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
-  background: #fff;
+  background: var(--color-input-bg-focus);
 }
 
 .search-field input::placeholder {
@@ -296,9 +460,9 @@ input {
   padding: 0;
   display: grid;
   gap: 2px;
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--color-input-bg-focus);
   overflow: hidden;
   transform-origin: top center;
   box-shadow: var(--shadow-soft);
@@ -322,17 +486,19 @@ input {
   cursor: pointer;
   transition:
     background-color var(--duration-press) var(--ease-hover),
+    color var(--duration-press) var(--ease-hover),
     transform var(--duration-press) var(--ease-out);
 }
 
 .search-results__item:hover,
 .search-results__item:focus-visible {
   background: var(--color-lime-300);
+  color: #14532d;
   outline: none;
 }
 
 .search-results__item:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .search-empty {
@@ -383,7 +549,8 @@ input {
 .state {
   padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
   border-left: 4px solid var(--color-lime-700);
-  background: color-mix(in srgb, var(--color-surface-deep) 48%, white);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--color-state-bg);
   font-size: 1.08rem;
   display: grid;
   gap: var(--space-sm);
@@ -401,7 +568,7 @@ input {
 .state--error {
   border-left-color: var(--color-danger);
   color: var(--color-danger);
-  background: color-mix(in srgb, #fecdd3 35%, white);
+  background: var(--color-danger-bg);
 }
 
 .state--loading .state__message {
@@ -423,9 +590,9 @@ input {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--color-surface-deep) 70%, white) 0%,
-    color-mix(in srgb, var(--color-lime-300) 55%, white) 45%,
-    color-mix(in srgb, var(--color-surface-deep) 70%, white) 100%
+    color-mix(in srgb, var(--color-surface-deep) 70%, var(--color-panel)) 0%,
+    color-mix(in srgb, var(--color-lime-300) 55%, var(--color-panel)) 45%,
+    color-mix(in srgb, var(--color-surface-deep) 70%, var(--color-panel)) 100%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.35s var(--ease-hover) infinite;
@@ -454,7 +621,7 @@ input {
 
 .slot {
   padding: var(--space-md) 0 var(--space-md) var(--space-sm);
-  border-bottom: 2px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--color-border) 22%, transparent);
 }
 
 .slot:last-child {
@@ -463,9 +630,10 @@ input {
 
 .slot--best {
   padding: var(--space-md);
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
   border-left: 5px solid var(--color-lime-500);
-  background: color-mix(in srgb, var(--color-lime-300) 28%, white);
+  border-radius: var(--radius-panel);
+  background: var(--color-slot-best-bg);
   box-shadow: var(--shadow-soft);
 }
 
@@ -483,6 +651,7 @@ input {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 .slot__badge {
@@ -490,9 +659,9 @@ input {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-ink);
+  color: #14532d;
   background: var(--color-lime-500);
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-control);
   padding: 0.25rem 0.6rem;
   transform-origin: left center;
@@ -525,6 +694,7 @@ input {
   font-size: 1.08rem;
   font-weight: 600;
   color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .slot__meta-item:last-child {
@@ -543,17 +713,17 @@ input {
   grid-template-columns: repeat(2, 1fr);
   gap: 0;
   margin: 0;
-  border-top: 2px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-top: 2px solid color-mix(in srgb, var(--color-border) 28%, transparent);
 }
 
 .prayer-item {
   padding: var(--space-md) var(--space-sm) var(--space-md) 0;
-  border-bottom: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--color-border) 20%, transparent);
 }
 
 .prayer-item:nth-child(odd) {
   padding-right: var(--space-sm);
-  border-right: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-right: 2px solid color-mix(in srgb, var(--color-border) 20%, transparent);
 }
 
 .prayer-item:nth-child(even) {
@@ -575,23 +745,24 @@ input {
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .meta-grid {
   display: grid;
   gap: 0;
   grid-template-columns: 1fr 1fr;
-  border-top: 2px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-top: 2px solid color-mix(in srgb, var(--color-border) 28%, transparent);
 }
 
 .meta-block {
   padding: var(--space-md) var(--space-sm) var(--space-md) 0;
-  border-bottom: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--color-border) 20%, transparent);
 }
 
 .meta-block:first-child {
   padding-right: var(--space-sm);
-  border-right: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-right: 2px solid color-mix(in srgb, var(--color-border) 20%, transparent);
 }
 
 .meta-block:nth-child(2) {
@@ -617,14 +788,16 @@ input {
   margin: 0.3rem 0 0;
   font-size: 1.2rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Hourly precipitation chart — CSS bars only (RFC §8.2) */
 .hourly-chart {
   margin-top: var(--space-md);
   padding: var(--space-md);
-  border: 2px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
-  background: color-mix(in srgb, white 70%, var(--color-surface));
+  border: 2px solid color-mix(in srgb, var(--color-border) 32%, transparent);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
 }
 
 .hourly-chart__title {
@@ -673,7 +846,7 @@ input {
     var(--color-lime-300) 0%,
     var(--color-lime-700) 100%
   );
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-border);
   transform: scaleY(0.02);
   transform-origin: bottom;
   transition: transform var(--duration-enter) var(--ease-out);
@@ -692,6 +865,7 @@ input {
   letter-spacing: 0.02em;
   color: var(--color-muted);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .hourly-chart__col:nth-child(odd) .hourly-chart__hour {
@@ -712,7 +886,7 @@ input {
 .footer {
   margin-top: var(--space-xl);
   padding-top: var(--space-md);
-  border-top: 2px solid var(--color-ink);
+  border-top: 2px solid var(--color-border);
   font-size: 0.95rem;
   color: var(--color-muted);
 }
@@ -746,7 +920,7 @@ input {
   .prayer-item:nth-child(odd),
   .prayer-item:nth-child(even) {
     padding: var(--space-md) 0.4rem var(--space-md) 0;
-    border-right: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+    border-right: 2px solid color-mix(in srgb, var(--color-border) 20%, transparent);
     border-bottom: 0;
   }
 
@@ -839,7 +1013,8 @@ input {
 
 @media (prefers-reduced-motion: reduce) {
   .btn:active:not(:disabled),
-  .search-results__item:active {
+  .search-results__item:active,
+  .theme-toggle:active:not(:disabled) {
     transform: none;
   }
 
@@ -849,6 +1024,14 @@ input {
 
   .location__active.is-dim {
     opacity: 1;
+  }
+
+  .theme-toggle__icon {
+    transition: none;
+  }
+
+  body {
+    transition: none;
   }
 
   .hero,

@@ -20,9 +20,62 @@ import { DEFAULT_LOCATION } from "../lib/location";
     />
     <meta name="generator" content={Astro.generator} />
     <title>Kapan Lari</title>
+    <script is:inline>
+      (function () {
+        try {
+          var key = "kapan-lari-theme";
+          var stored = localStorage.getItem(key);
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
   </head>
   <body>
     <main class="app">
+      <div class="theme-bar">
+        <button
+          type="button"
+          class="theme-toggle"
+          data-theme-toggle
+          aria-label="Aktifkan mode gelap"
+          title="Ganti mode tampilan"
+        >
+          <span class="theme-toggle__icons" aria-hidden="true">
+            <svg
+              class="theme-toggle__icon theme-toggle__icon--sun"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="square"
+            >
+              <circle cx="12" cy="12" r="4"></circle>
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+              ></path>
+            </svg>
+            <svg
+              class="theme-toggle__icon theme-toggle__icon--moon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="square"
+            >
+              <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+
       <header class="hero">
         <div class="hero__copy">
           <div class="hero__rail" aria-hidden="true"></div>
@@ -205,6 +258,13 @@ import { DEFAULT_LOCATION } from "../lib/location";
         emptyStateMessage,
         recommendRunSlots,
       } from "../lib/recommendRunSlots";
+      import {
+        THEME_STORAGE_KEY,
+        isTheme,
+        nextTheme,
+        resolveTheme,
+        type Theme,
+      } from "../lib/theme";
 
       const ERROR_COPY =
         "Data belum bisa dimuat. Periksa koneksi internet, lalu coba lagi.";
@@ -268,6 +328,9 @@ import { DEFAULT_LOCATION } from "../lib/location";
       const hourlyBars = document.querySelector(
         "[data-hourly-bars]",
       ) as HTMLElement;
+      const themeToggle = document.querySelector(
+        "[data-theme-toggle]",
+      ) as HTMLButtonElement;
 
       let activeLocation: Coordinates = { ...DEFAULT_LOCATION };
       let searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -276,6 +339,68 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       function prefersReducedMotion(): boolean {
         return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      }
+
+      function readStoredTheme(): string | null {
+        try {
+          return localStorage.getItem(THEME_STORAGE_KEY);
+        } catch {
+          return null;
+        }
+      }
+
+      function writeStoredTheme(theme: Theme): void {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch {
+          // Ignore quota / private-mode failures; theme still applies in-session.
+        }
+      }
+
+      function currentTheme(): Theme {
+        const attr = document.documentElement.dataset.theme;
+        return resolveTheme(
+          attr,
+          window.matchMedia("(prefers-color-scheme: dark)").matches,
+        );
+      }
+
+      function syncThemeControl(theme: Theme): void {
+        document.documentElement.dataset.theme = theme;
+        const next = nextTheme(theme);
+        themeToggle.setAttribute(
+          "aria-label",
+          next === "dark" ? "Aktifkan mode gelap" : "Aktifkan mode terang",
+        );
+        themeToggle.setAttribute(
+          "title",
+          next === "dark" ? "Mode gelap" : "Mode terang",
+        );
+      }
+
+      function initTheme(): void {
+        const theme = resolveTheme(
+          readStoredTheme(),
+          window.matchMedia("(prefers-color-scheme: dark)").matches,
+        );
+        syncThemeControl(theme);
+
+        themeToggle.addEventListener("click", () => {
+          const next = nextTheme(currentTheme());
+          syncThemeControl(next);
+          writeStoredTheme(next);
+        });
+
+        const media = window.matchMedia("(prefers-color-scheme: dark)");
+        const onSystemChange = (event: MediaQueryListEvent) => {
+          if (isTheme(readStoredTheme())) return;
+          syncThemeControl(event.matches ? "dark" : "light");
+        };
+        if (typeof media.addEventListener === "function") {
+          media.addEventListener("change", onSystemChange);
+        } else {
+          media.addListener(onSystemChange);
+        }
       }
 
       /** Double-rAF so CSS transitions start from the pre-enter state (interruptible). */
@@ -676,6 +801,8 @@ import { DEFAULT_LOCATION } from "../lib/location";
       retryBtn.addEventListener("click", () => {
         void loadForLocation(activeLocation);
       });
+
+      initTheme();
 
       // First load Jakarta; tidak auto-prompt geo (PRD Q12 / PLANNING E4.3)
       // Lokasi sesi tidak disimpan ke localStorage (PRD Q19)
