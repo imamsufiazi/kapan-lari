@@ -1,0 +1,306 @@
+---
+import "../styles/global.css";
+import { DEFAULT_LOCATION } from "../lib/location";
+---
+
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Rekomendasi waktu lari terbaik hari ini — aman dari bentrok sholat dan cuaca buruk."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>Kapan Lari</title>
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <h1 class="brand">Kapan Lari</h1>
+        <p class="tagline">Slot lari terbaik hari ini — aman dari sholat dan cuaca buruk.</p>
+      </header>
+
+      <section class="location" aria-labelledby="lokasi-heading">
+        <p class="location__label" id="lokasi-heading">Lokasi aktif</p>
+        <p class="location__active" data-location-label>{DEFAULT_LOCATION.label}</p>
+
+        <div class="location__controls">
+          <button type="button" class="btn" data-geo-btn disabled>
+            Gunakan lokasi saya
+          </button>
+          <div class="search-field">
+            <label for="city-search">Cari kota atau kabupaten</label>
+            <input
+              id="city-search"
+              type="search"
+              name="city"
+              placeholder="Contoh: Bandung"
+              autocomplete="off"
+              disabled
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="rekomendasi-heading" aria-live="polite">
+        <h2 class="section__title" id="rekomendasi-heading">Rekomendasi hari ini</h2>
+        <div class="state" data-app-state>
+          <p data-state-text>Memuat data cuaca dan jadwal sholat…</p>
+          <button type="button" class="btn btn--ghost" data-retry-btn hidden>
+            Coba lagi
+          </button>
+        </div>
+        <ul class="slot-list" data-slot-list hidden></ul>
+      </section>
+
+      <section class="section" aria-labelledby="sholat-heading">
+        <h2 class="section__title" id="sholat-heading">Jadwal sholat</h2>
+        <dl class="meta-grid" data-prayer-times>
+          <div class="meta-block">
+            <dt>Fajr</dt>
+            <dd data-prayer="Fajr">—</dd>
+          </div>
+          <div class="meta-block">
+            <dt>Dhuhr</dt>
+            <dd data-prayer="Dhuhr">—</dd>
+          </div>
+          <div class="meta-block">
+            <dt>Asr</dt>
+            <dd data-prayer="Asr">—</dd>
+          </div>
+          <div class="meta-block">
+            <dt>Maghrib</dt>
+            <dd data-prayer="Maghrib">—</dd>
+          </div>
+          <div class="meta-block">
+            <dt>Isha</dt>
+            <dd data-prayer="Isha">—</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="section" aria-labelledby="cuaca-heading">
+        <h2 class="section__title" id="cuaca-heading">Cuaca hari ini</h2>
+        <dl class="meta-grid" data-weather-summary>
+          <div class="meta-block">
+            <dt>Suhu</dt>
+            <dd data-weather-temp>— / —</dd>
+          </div>
+          <div class="meta-block">
+            <dt>Hujan tertinggi</dt>
+            <dd data-weather-rain>—</dd>
+          </div>
+        </dl>
+      </section>
+
+      <footer class="footer">
+        <p>
+          Data cuaca oleh{" "}
+          <a href="https://open-meteo.com/" rel="noopener noreferrer">Open-Meteo</a>
+        </p>
+        <p>
+          Jadwal sholat oleh{" "}
+          <a href="https://aladhan.com/" rel="noopener noreferrer">Aladhan</a>
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      import { DEFAULT_LOCATION } from "../lib/location";
+      import type { Coordinates, PrayerName, RunSlot } from "../lib/location";
+      import { fetchPrayerTimings } from "../lib/prayer";
+      import { fetchHourlyWeather, summarizeWeather } from "../lib/weather";
+      import {
+        emptyStateMessage,
+        recommendRunSlots,
+      } from "../lib/recommendRunSlots";
+
+      const ERROR_COPY = "Gagal memuat data. Coba lagi.";
+      const LOADING_COPY = "Memuat data cuaca dan jadwal sholat…";
+      const PRAYER_ORDER: PrayerName[] = [
+        "Fajr",
+        "Dhuhr",
+        "Asr",
+        "Maghrib",
+        "Isha",
+      ];
+
+      const locationLabel = document.querySelector(
+        "[data-location-label]",
+      ) as HTMLElement;
+      const stateEl = document.querySelector("[data-app-state]") as HTMLElement;
+      const stateText = document.querySelector(
+        "[data-state-text]",
+      ) as HTMLElement;
+      const retryBtn = document.querySelector(
+        "[data-retry-btn]",
+      ) as HTMLButtonElement;
+      const slotList = document.querySelector(
+        "[data-slot-list]",
+      ) as HTMLUListElement;
+      const weatherTemp = document.querySelector(
+        "[data-weather-temp]",
+      ) as HTMLElement;
+      const weatherRain = document.querySelector(
+        "[data-weather-rain]",
+      ) as HTMLElement;
+
+      let activeLocation: Coordinates = { ...DEFAULT_LOCATION };
+
+      function formatHourRange(start: Date, end: Date, timeZone: string): string {
+        const fmt = new Intl.DateTimeFormat("id-ID", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        });
+        return `${fmt.format(start)}–${fmt.format(end)}`;
+      }
+
+      function showLoading() {
+        stateEl.hidden = false;
+        stateEl.classList.remove("state--error");
+        stateText.textContent = LOADING_COPY;
+        retryBtn.hidden = true;
+        slotList.hidden = true;
+        slotList.replaceChildren();
+      }
+
+      function showError() {
+        stateEl.hidden = false;
+        stateEl.classList.add("state--error");
+        stateText.textContent = ERROR_COPY;
+        retryBtn.hidden = false;
+        slotList.hidden = true;
+        slotList.replaceChildren();
+      }
+
+      function showEmpty(message: string) {
+        stateEl.hidden = false;
+        stateEl.classList.remove("state--error");
+        stateText.textContent = message;
+        retryBtn.hidden = true;
+        slotList.hidden = true;
+        slotList.replaceChildren();
+      }
+
+      function showSlots(slots: RunSlot[], timeZone: string) {
+        stateEl.hidden = true;
+        retryBtn.hidden = true;
+        slotList.hidden = false;
+        slotList.replaceChildren();
+
+        for (const slot of slots) {
+          const li = document.createElement("li");
+          li.className = "slot";
+
+          const header = document.createElement("div");
+          header.className = "slot__header";
+
+          const time = document.createElement("p");
+          time.className = "slot__time";
+          time.textContent = formatHourRange(slot.start, slot.end, timeZone);
+
+          header.append(time);
+          if (slot.isBest) {
+            const badge = document.createElement("span");
+            badge.className = "slot__badge";
+            badge.textContent = "Terbaik";
+            header.append(badge);
+          }
+
+          const meta = document.createElement("p");
+          meta.className = "slot__meta";
+          meta.textContent = `${Math.round(slot.temperatureC)}°C · hujan ${slot.precipitationProbability}% · dekat ${slot.nearestPrayer.name} (${slot.nearestPrayer.deltaMinutes} mnt)`;
+
+          const reasons = document.createElement("p");
+          reasons.className = "slot__reasons";
+          reasons.textContent = slot.reasons.join(" · ");
+
+          li.append(header, meta, reasons);
+          slotList.append(li);
+        }
+      }
+
+      function renderPrayerTimes(
+        timings: Record<PrayerName, string>,
+      ): void {
+        for (const name of PRAYER_ORDER) {
+          const el = document.querySelector(
+            `[data-prayer="${name}"]`,
+          ) as HTMLElement | null;
+          if (el) el.textContent = timings[name];
+        }
+      }
+
+      function clearMetaPlaceholders() {
+        for (const name of PRAYER_ORDER) {
+          const el = document.querySelector(
+            `[data-prayer="${name}"]`,
+          ) as HTMLElement | null;
+          if (el) el.textContent = "—";
+        }
+        weatherTemp.textContent = "— / —";
+        weatherRain.textContent = "—";
+      }
+
+      async function loadForLocation(location: Coordinates) {
+        activeLocation = location;
+        locationLabel.textContent = location.label;
+        showLoading();
+        clearMetaPlaceholders();
+
+        try {
+          const [prayerTimings, weather] = await Promise.all([
+            fetchPrayerTimings(location),
+            fetchHourlyWeather(location),
+          ]);
+
+          const timezone = weather.timezone || location.timezone;
+          activeLocation = { ...location, timezone };
+
+          renderPrayerTimes(prayerTimings);
+
+          const summary = summarizeWeather(weather.hourly);
+          weatherTemp.textContent = `${Math.round(summary.minTempC)}° / ${Math.round(summary.maxTempC)}°`;
+          weatherRain.textContent = `${summary.maxPrecipitationProbability}%`;
+
+          const result = recommendRunSlots({
+            now: new Date(),
+            timezone,
+            prayerTimings,
+            hourlyWeather: weather.hourly,
+          });
+
+          if (result.slots.length === 0) {
+            const summaryDiscarded = result.discardedSummary ?? {
+              past: 0,
+              prayerConflict: 0,
+              unsafeWeather: 0,
+            };
+            showEmpty(emptyStateMessage(summaryDiscarded));
+            return;
+          }
+
+          showSlots(result.slots, timezone);
+        } catch {
+          showError();
+        }
+      }
+
+      retryBtn.addEventListener("click", () => {
+        void loadForLocation(activeLocation);
+      });
+
+      void loadForLocation(DEFAULT_LOCATION);
+    </script>
+  </body>
+</html>
