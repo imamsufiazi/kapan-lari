@@ -31,9 +31,10 @@ import { DEFAULT_LOCATION } from "../lib/location";
       <section class="location" aria-labelledby="lokasi-heading">
         <p class="location__label" id="lokasi-heading">Lokasi aktif</p>
         <p class="location__active" data-location-label>{DEFAULT_LOCATION.label}</p>
+        <p class="location__hint" data-location-hint hidden></p>
 
         <div class="location__controls">
-          <button type="button" class="btn" data-geo-btn disabled>
+          <button type="button" class="btn" data-geo-btn>
             Gunakan lokasi saya
           </button>
           <div class="search-field">
@@ -44,8 +45,15 @@ import { DEFAULT_LOCATION } from "../lib/location";
               name="city"
               placeholder="Contoh: Bandung"
               autocomplete="off"
-              disabled
             />
+            <ul
+              class="search-results"
+              data-search-results
+              role="listbox"
+              aria-label="Hasil pencarian kota"
+              hidden
+            ></ul>
+            <p class="search-empty" data-search-empty hidden>Kota tidak ditemukan</p>
           </div>
         </div>
       </section>
@@ -63,25 +71,25 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       <section class="section" aria-labelledby="sholat-heading">
         <h2 class="section__title" id="sholat-heading">Jadwal sholat</h2>
-        <dl class="meta-grid" data-prayer-times>
-          <div class="meta-block">
-            <dt>Fajr</dt>
+        <dl class="prayer-grid" data-prayer-times>
+          <div class="prayer-item">
+            <dt>Subuh</dt>
             <dd data-prayer="Fajr">—</dd>
           </div>
-          <div class="meta-block">
-            <dt>Dhuhr</dt>
+          <div class="prayer-item">
+            <dt>Zuhur</dt>
             <dd data-prayer="Dhuhr">—</dd>
           </div>
-          <div class="meta-block">
-            <dt>Asr</dt>
+          <div class="prayer-item">
+            <dt>Ashar</dt>
             <dd data-prayer="Asr">—</dd>
           </div>
-          <div class="meta-block">
+          <div class="prayer-item">
             <dt>Maghrib</dt>
             <dd data-prayer="Maghrib">—</dd>
           </div>
-          <div class="meta-block">
-            <dt>Isha</dt>
+          <div class="prayer-item">
+            <dt>Isya</dt>
             <dd data-prayer="Isha">—</dd>
           </div>
         </dl>
@@ -91,12 +99,16 @@ import { DEFAULT_LOCATION } from "../lib/location";
         <h2 class="section__title" id="cuaca-heading">Cuaca hari ini</h2>
         <dl class="meta-grid" data-weather-summary>
           <div class="meta-block">
-            <dt>Suhu</dt>
+            <dt>Suhu min / maks</dt>
             <dd data-weather-temp>— / —</dd>
           </div>
           <div class="meta-block">
             <dt>Hujan tertinggi</dt>
             <dd data-weather-rain>—</dd>
+          </div>
+          <div class="meta-block meta-block--wide">
+            <dt>Kondisi</dt>
+            <dd data-weather-condition>—</dd>
           </div>
         </dl>
       </section>
@@ -116,6 +128,12 @@ import { DEFAULT_LOCATION } from "../lib/location";
     <script>
       import { DEFAULT_LOCATION } from "../lib/location";
       import type { Coordinates, PrayerName, RunSlot } from "../lib/location";
+      import {
+        formatNearestPrayer,
+        prayerLabel,
+        weatherConditionLabel,
+      } from "../lib/display";
+      import { searchCities } from "../lib/geocoding";
       import { fetchPrayerTimings } from "../lib/prayer";
       import { fetchHourlyWeather, summarizeWeather } from "../lib/weather";
       import {
@@ -125,6 +143,12 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
       const ERROR_COPY = "Gagal memuat data. Coba lagi.";
       const LOADING_COPY = "Memuat data cuaca dan jadwal sholat…";
+      const GEO_DENY_COPY =
+        "Lokasi ditolak atau gagal. Tetap di lokasi aktif — cari kota di bawah.";
+      const GEO_UNSUPPORTED_COPY =
+        "Peramban tidak mendukung lokasi. Cari kota di bawah.";
+      const GEO_LOADING_COPY = "Mengambil lokasi perangkat…";
+      const SEARCH_EMPTY_COPY = "Kota tidak ditemukan";
       const PRAYER_ORDER: PrayerName[] = [
         "Fajr",
         "Dhuhr",
@@ -132,9 +156,25 @@ import { DEFAULT_LOCATION } from "../lib/location";
         "Maghrib",
         "Isha",
       ];
+      const SEARCH_DEBOUNCE_MS = 300;
 
       const locationLabel = document.querySelector(
         "[data-location-label]",
+      ) as HTMLElement;
+      const locationHint = document.querySelector(
+        "[data-location-hint]",
+      ) as HTMLElement;
+      const geoBtn = document.querySelector(
+        "[data-geo-btn]",
+      ) as HTMLButtonElement;
+      const citySearch = document.querySelector(
+        "#city-search",
+      ) as HTMLInputElement;
+      const searchResults = document.querySelector(
+        "[data-search-results]",
+      ) as HTMLUListElement;
+      const searchEmpty = document.querySelector(
+        "[data-search-empty]",
       ) as HTMLElement;
       const stateEl = document.querySelector("[data-app-state]") as HTMLElement;
       const stateText = document.querySelector(
@@ -152,8 +192,13 @@ import { DEFAULT_LOCATION } from "../lib/location";
       const weatherRain = document.querySelector(
         "[data-weather-rain]",
       ) as HTMLElement;
+      const weatherCondition = document.querySelector(
+        "[data-weather-condition]",
+      ) as HTMLElement;
 
       let activeLocation: Coordinates = { ...DEFAULT_LOCATION };
+      let searchTimer: ReturnType<typeof setTimeout> | null = null;
+      let searchRequestId = 0;
 
       function formatHourRange(start: Date, end: Date, timeZone: string): string {
         const fmt = new Intl.DateTimeFormat("id-ID", {
@@ -163,6 +208,23 @@ import { DEFAULT_LOCATION } from "../lib/location";
           hourCycle: "h23",
         });
         return `${fmt.format(start)}–${fmt.format(end)}`;
+      }
+
+      function setLocationHint(message: string | null) {
+        if (!message) {
+          locationHint.hidden = true;
+          locationHint.textContent = "";
+          return;
+        }
+        locationHint.hidden = false;
+        locationHint.textContent = message;
+      }
+
+      function clearSearchUi() {
+        searchResults.hidden = true;
+        searchResults.replaceChildren();
+        searchEmpty.hidden = true;
+        searchEmpty.textContent = SEARCH_EMPTY_COPY;
       }
 
       function showLoading() {
@@ -192,6 +254,24 @@ import { DEFAULT_LOCATION } from "../lib/location";
         slotList.replaceChildren();
       }
 
+      function appendMetaRow(
+        dl: HTMLDListElement,
+        term: string,
+        value: string,
+      ): void {
+        const wrap = document.createElement("div");
+        wrap.className = "slot__meta-item";
+
+        const dt = document.createElement("dt");
+        dt.textContent = term;
+
+        const dd = document.createElement("dd");
+        dd.textContent = value;
+
+        wrap.append(dt, dd);
+        dl.append(wrap);
+      }
+
       function showSlots(slots: RunSlot[], timeZone: string) {
         stateEl.hidden = true;
         retryBtn.hidden = true;
@@ -200,7 +280,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
         for (const slot of slots) {
           const li = document.createElement("li");
-          li.className = "slot";
+          li.className = slot.isBest ? "slot slot--best" : "slot";
 
           const header = document.createElement("div");
           header.className = "slot__header";
@@ -217,9 +297,16 @@ import { DEFAULT_LOCATION } from "../lib/location";
             header.append(badge);
           }
 
-          const meta = document.createElement("p");
-          meta.className = "slot__meta";
-          meta.textContent = `${Math.round(slot.temperatureC)}°C · hujan ${slot.precipitationProbability}% · dekat ${slot.nearestPrayer.name} (${slot.nearestPrayer.deltaMinutes} mnt)`;
+          // Meta wajib US-2 / PRD §8: suhu, % hujan, sholat terdekat, alasan
+          const meta = document.createElement("dl");
+          meta.className = "slot__meta-grid";
+          appendMetaRow(meta, "Suhu", `${Math.round(slot.temperatureC)}°C`);
+          appendMetaRow(meta, "Hujan", `${slot.precipitationProbability}%`);
+          appendMetaRow(
+            meta,
+            "Sholat terdekat",
+            formatNearestPrayer(slot.nearestPrayer),
+          );
 
           const reasons = document.createElement("p");
           reasons.className = "slot__reasons";
@@ -237,7 +324,10 @@ import { DEFAULT_LOCATION } from "../lib/location";
           const el = document.querySelector(
             `[data-prayer="${name}"]`,
           ) as HTMLElement | null;
-          if (el) el.textContent = timings[name];
+          if (el) {
+            el.textContent = timings[name];
+            el.setAttribute("aria-label", `${prayerLabel(name)} ${timings[name]}`);
+          }
         }
       }
 
@@ -250,6 +340,7 @@ import { DEFAULT_LOCATION } from "../lib/location";
         }
         weatherTemp.textContent = "— / —";
         weatherRain.textContent = "—";
+        weatherCondition.textContent = "—";
       }
 
       async function loadForLocation(location: Coordinates) {
@@ -266,12 +357,16 @@ import { DEFAULT_LOCATION } from "../lib/location";
 
           const timezone = weather.timezone || location.timezone;
           activeLocation = { ...location, timezone };
+          locationLabel.textContent = activeLocation.label;
 
           renderPrayerTimes(prayerTimings);
 
           const summary = summarizeWeather(weather.hourly);
           weatherTemp.textContent = `${Math.round(summary.minTempC)}° / ${Math.round(summary.maxTempC)}°`;
           weatherRain.textContent = `${summary.maxPrecipitationProbability}%`;
+          weatherCondition.textContent = weatherConditionLabel(
+            summary.conditionCode,
+          );
 
           const result = recommendRunSlots({
             now: new Date(),
@@ -296,10 +391,112 @@ import { DEFAULT_LOCATION } from "../lib/location";
         }
       }
 
+      function renderSearchResults(cities: Coordinates[]) {
+        searchResults.replaceChildren();
+        if (cities.length === 0) {
+          searchResults.hidden = true;
+          searchEmpty.hidden = false;
+          searchEmpty.textContent = SEARCH_EMPTY_COPY;
+          return;
+        }
+
+        searchEmpty.hidden = true;
+        searchResults.hidden = false;
+
+        for (const city of cities) {
+          const li = document.createElement("li");
+          li.setAttribute("role", "option");
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "search-results__item";
+          button.textContent = city.label;
+          button.addEventListener("click", () => {
+            citySearch.value = "";
+            clearSearchUi();
+            setLocationHint(null);
+            void loadForLocation(city);
+          });
+
+          li.append(button);
+          searchResults.append(li);
+        }
+      }
+
+      async function runCitySearch(query: string) {
+        const trimmed = query.trim();
+        if (trimmed.length < 2) {
+          clearSearchUi();
+          return;
+        }
+
+        const requestId = ++searchRequestId;
+        try {
+          const cities = await searchCities(trimmed);
+          if (requestId !== searchRequestId) return;
+          renderSearchResults(cities);
+        } catch {
+          if (requestId !== searchRequestId) return;
+          searchResults.hidden = true;
+          searchResults.replaceChildren();
+          searchEmpty.hidden = false;
+          searchEmpty.textContent = SEARCH_EMPTY_COPY;
+        }
+      }
+
+      function requestGeolocation() {
+        if (!navigator.geolocation) {
+          setLocationHint(GEO_UNSUPPORTED_COPY);
+          return;
+        }
+
+        geoBtn.disabled = true;
+        setLocationHint(GEO_LOADING_COPY);
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            geoBtn.disabled = false;
+            setLocationHint(null);
+            clearSearchUi();
+            citySearch.value = "";
+            void loadForLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              label: "Lokasi saat ini",
+              timezone: activeLocation.timezone,
+            });
+          },
+          () => {
+            geoBtn.disabled = false;
+            // Tetap di lokasi aktif; UI tidak di-block (RFC §5.4 / PLANNING E3.1)
+            setLocationHint(GEO_DENY_COPY);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 10_000,
+            maximumAge: 60_000,
+          },
+        );
+      }
+
+      geoBtn.addEventListener("click", () => {
+        requestGeolocation();
+      });
+
+      citySearch.addEventListener("input", () => {
+        if (searchTimer !== null) clearTimeout(searchTimer);
+        const value = citySearch.value;
+        searchTimer = setTimeout(() => {
+          void runCitySearch(value);
+        }, SEARCH_DEBOUNCE_MS);
+      });
+
       retryBtn.addEventListener("click", () => {
         void loadForLocation(activeLocation);
       });
 
+      // First load Jakarta; tidak auto-prompt geo (PRD Q12 / PLANNING E4.3)
+      // Lokasi sesi tidak disimpan ke localStorage (PRD Q19)
       void loadForLocation(DEFAULT_LOCATION);
     </script>
   </body>

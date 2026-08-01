@@ -21,6 +21,8 @@ export type WeatherSummary = {
   minTempC: number;
   maxTempC: number;
   maxPrecipitationProbability: number;
+  /** Weather code pada jam dengan peluang hujan tertinggi (RFC §8.1 kondisi ringkas). */
+  conditionCode: number;
 };
 
 export async function fetchHourlyWeather(
@@ -102,6 +104,7 @@ export function summarizeWeather(hourly: HourlyWeather[]): WeatherSummary {
   let minTempC = hourly[0]!.temperatureC;
   let maxTempC = hourly[0]!.temperatureC;
   let maxPrecipitationProbability = hourly[0]!.precipitationProbability;
+  let conditionCode = hourly[0]!.weatherCode;
 
   for (let i = 1; i < hourly.length; i++) {
     const row = hourly[i]!;
@@ -109,8 +112,14 @@ export function summarizeWeather(hourly: HourlyWeather[]): WeatherSummary {
     if (row.temperatureC > maxTempC) maxTempC = row.temperatureC;
     if (row.precipitationProbability > maxPrecipitationProbability) {
       maxPrecipitationProbability = row.precipitationProbability;
+      conditionCode = row.weatherCode;
     }
   }
 
-  return { minTempC, maxTempC, maxPrecipitationProbability };
+  return {
+    minTempC,
+    maxTempC,
+    maxPrecipitationProbability,
+    conditionCode,
+  };
 }

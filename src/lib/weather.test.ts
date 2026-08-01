@@ -126,6 +126,7 @@ describe("summarizeWeather", () => {
       minTempC: 24,
       maxTempC: 32,
       maxPrecipitationProbability: 40,
+      conditionCode: 61,
     });
   });
 });
